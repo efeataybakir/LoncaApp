@@ -1,69 +1,115 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  ActivityIndicator,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Product } from '../types/product';
+import { ImagePreview } from './ImagePreview';
 
 interface ProductCardProps {
   product: Product;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+export function ProductCard({ product }: ProductCardProps) {
   const router = useRouter();
+  const [imageLoading, setImageLoading] = React.useState(true);
+  const [showPreview, setShowPreview] = React.useState(false);
 
   const handlePress = () => {
-    router.push(`/product/${product.id}`);
+    router.push(`/products/${product.id}`);
   };
 
+  const handleLongPress = () => {
+    setShowPreview(true);
+  };
+
+  const handleClosePreview = () => {
+    setShowPreview(false);
+  };
+
+  const displayName = product.name.split('-')[1]?.trim() || product.name;
+
   return (
-    <TouchableOpacity style={styles.container} onPress={handlePress}>
-      <Image
-        source={{ uri: product.mainImage }}
-        style={styles.image}
-        resizeMode="cover"
-      />
-      <View style={styles.infoContainer}>
-        <Text style={styles.brand}>{product.vendorName}</Text>
+    <TouchableOpacity
+      style={styles.container}
+      onPress={handlePress}
+      onLongPress={handleLongPress}
+      delayLongPress={500}
+    >
+      <View style={styles.imageContainer}>
+        <Image
+          source={{ uri: product.mainImage }}
+          style={styles.image}
+          onLoadStart={() => setImageLoading(true)}
+          onLoadEnd={() => setImageLoading(false)}
+          resizeMode="cover"
+        />
+        {imageLoading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color="#000" />
+          </View>
+        )}
+      </View>
+
+      <View style={styles.details}>
         <Text style={styles.name} numberOfLines={2}>
-          {product.name}
+          {displayName}
         </Text>
         <Text style={styles.price}>${product.price.toFixed(2)}</Text>
       </View>
+
+      <ImagePreview
+        visible={showPreview}
+        images={[product.mainImage, ...product.images]}
+        onClose={handleClosePreview}
+      />
     </TouchableOpacity>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'white',
+    width: '48%',
+    backgroundColor: '#fff',
     borderRadius: 8,
     marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  image: {
+  imageContainer: {
     width: '100%',
-    height: 200,
+    aspectRatio: 1,
     borderTopLeftRadius: 8,
     borderTopRightRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#f5f5f5',
   },
-  infoContainer: {
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  loadingContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  details: {
     padding: 12,
   },
-  brand: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
-  },
   name: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
     marginBottom: 4,
+    color: '#333',
   },
   price: {
     fontSize: 16,

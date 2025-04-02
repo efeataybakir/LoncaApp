@@ -1,7 +1,13 @@
-import { Product, ProductListResponse } from '../types/product';
+import { Product, ProductListResponse, ProductColor } from '../types/product';
 import parentProducts from '../assets/data/parent_products.json';
 
+const extractColorFromName = (name: string): string => {
+  const parts = name.split('-');
+  return parts.length > 2 ? parts[parts.length - 1].trim() : '';
+};
+
 const transformProduct = (rawProduct: any): Product => {
+  const name = rawProduct.names?.en || 'Unnamed Product';
   return {
     id: rawProduct._id.$oid || rawProduct._id,
     vendorName: rawProduct.vendor?.name || 'Unknown Vendor',
@@ -15,9 +21,10 @@ const transformProduct = (rawProduct: any): Product => {
     },
     mainImage: rawProduct.main_image || '',
     price: rawProduct.price || 0,
-    name: rawProduct.names?.en || 'Unnamed Product',
-    images: rawProduct.images || [],
+    name: name,
+    color: extractColorFromName(name),
     productCode: rawProduct.product_code || '',
+    images: rawProduct.images || [],
   };
 };
 
@@ -57,4 +64,34 @@ export const dataService = {
       return null;
     }
   },
+
+  getProductColors(productCode: string): ProductColor[] {
+    try {
+      const baseCode = productCode.split('-')[0];
+      const products = this.getProducts().products;
+      const relatedProducts = products.filter(
+        (p) => p.productCode.startsWith(baseCode)
+      );
+
+      return relatedProducts.map((p) => ({
+        name: p.color || '',
+        productId: p.id,
+        mainImage: p.mainImage,
+      }));
+    } catch (error) {
+      console.error('Error getting product colors:', error);
+      return [];
+    }
+  },
+
+  getRelatedProducts(productCode: string, currentId: string): Product[] {
+    try {
+      return parentProducts
+        .filter(p => p.product_code === productCode && (p._id.$oid || p._id) !== currentId)
+        .map(transformProduct);
+    } catch (error) {
+      console.error('Error getting related products:', error);
+      return [];
+    }
+  }
 }; 

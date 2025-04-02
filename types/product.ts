@@ -12,11 +12,18 @@ export interface Product {
   mainImage: string;
   price: number;
   name: string;
-  images: string[];
+  color: string;
   productCode: string;
+  images: string[];
 }
 
 export interface ProductListResponse {
   products: Product[];
   total: number;
+}
+
+export interface ProductColor {
+  name: string;
+  productId: string;
+  mainImage: string;
 } 
