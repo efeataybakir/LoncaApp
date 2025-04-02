@@ -4,14 +4,20 @@ import parentProducts from '../assets/data/parent_products.json';
 const transformProduct = (rawProduct: any): Product => {
   return {
     id: rawProduct._id.$oid || rawProduct._id,
-    name: rawProduct.names?.en || 'Unnamed Product',
-    brand: rawProduct.vendor?.name || 'Unknown Brand',
-    price: rawProduct.price || 0,
-    sku: rawProduct.sku || '',
-    series: rawProduct.series?.name,
+    vendorName: rawProduct.vendor?.name || 'Unknown Vendor',
+    seriesName: rawProduct.series?.name || '',
+    seriesItemQuantity: rawProduct.series?.item_quantity || 0,
+    descriptionDetails: {
+      fabric: rawProduct.description_details?.en?.fabric || '',
+      modelMeasurements: rawProduct.description_details?.en?.model_measurements || '',
+      sampleSize: rawProduct.description_details?.en?.sample_size || '',
+      productMeasurements: rawProduct.description_details?.en?.product_measurements || '',
+    },
     mainImage: rawProduct.main_image || '',
+    price: rawProduct.price || 0,
+    name: rawProduct.names?.en || 'Unnamed Product',
     images: rawProduct.images || [],
-    details: rawProduct.description_details?.en?.fabric || '',
+    productCode: rawProduct.product_code || '',
   };
 };
 
@@ -35,7 +41,6 @@ export const dataService = {
   getProductById(id: string): Product | null {
     try {
       const rawProduct = parentProducts.find((p) => {
-        // Handle both object ID format and string ID format
         const productId = typeof p._id === 'object' && p._id.$oid 
           ? p._id.$oid 
           : p._id;

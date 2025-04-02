@@ -22,7 +22,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         resizeMode="cover"
       />
       <View style={styles.infoContainer}>
-        <Text style={styles.brand}>{product.brand}</Text>
+        <Text style={styles.brand}>{product.vendorName}</Text>
         <Text style={styles.name} numberOfLines={2}>
           {product.name}
         </Text>

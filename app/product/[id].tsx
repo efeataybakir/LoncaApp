@@ -11,13 +11,18 @@ export default function ProductDetailScreen() {
   const [product, setProduct] = React.useState<Product | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [imageLoading, setImageLoading] = React.useState(true);
 
   React.useEffect(() => {
     fetchProductDetails();
   }, [id]);
 
   const fetchProductDetails = () => {
-    if (!id) return;
+    if (!id) {
+      setError('No product ID provided');
+      setLoading(false);
+      return;
+    }
     
     try {
       setLoading(true);
@@ -32,7 +37,7 @@ export default function ProductDetailScreen() {
       setProduct(data);
     } catch (err) {
       setError('Failed to load product details. Please try again later.');
-      console.error(err);
+      console.error('Error fetching product:', err);
     } finally {
       setLoading(false);
     }
@@ -56,32 +61,66 @@ export default function ProductDetailScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <Image
-        source={{ uri: product.mainImage }}
-        style={styles.mainImage}
-        resizeMode="cover"
-      />
+      <View style={styles.imageContainer}>
+        {imageLoading && (
+          <View style={styles.imageLoadingContainer}>
+            <ActivityIndicator size="large" />
+          </View>
+        )}
+        <Image
+          source={{ uri: product.mainImage }}
+          style={styles.mainImage}
+          resizeMode="cover"
+          onLoadStart={() => setImageLoading(true)}
+          onLoadEnd={() => setImageLoading(false)}
+          onError={() => {
+            setImageLoading(false);
+            setError('Failed to load product image');
+          }}
+        />
+      </View>
       
       <View style={styles.contentContainer}>
-        <Text style={styles.brand}>{product.brand}</Text>
+        <Text style={styles.vendorName}>{product.vendorName}</Text>
         <Text style={styles.name}>{product.name}</Text>
         <Text style={styles.price}>${product.price.toFixed(2)}</Text>
         
         <View style={styles.detailsContainer}>
-          <Text style={styles.detailLabel}>SKU:</Text>
-          <Text style={styles.detailValue}>{product.sku}</Text>
+          <Text style={styles.detailLabel}>Product Code:</Text>
+          <Text style={styles.detailValue}>{product.productCode}</Text>
           
-          {product.series && (
+          {product.seriesName && (
             <>
               <Text style={styles.detailLabel}>Series:</Text>
-              <Text style={styles.detailValue}>{product.series}</Text>
+              <Text style={styles.detailValue}>{product.seriesName}</Text>
             </>
           )}
           
-          {product.details && (
+          {product.descriptionDetails.fabric && (
             <>
-              <Text style={styles.detailLabel}>Details:</Text>
-              <Text style={styles.detailValue}>{product.details}</Text>
+              <Text style={styles.detailLabel}>Fabric:</Text>
+              <Text style={styles.detailValue}>{product.descriptionDetails.fabric}</Text>
+            </>
+          )}
+          
+          {product.descriptionDetails.modelMeasurements && (
+            <>
+              <Text style={styles.detailLabel}>Model Measurements:</Text>
+              <Text style={styles.detailValue}>{product.descriptionDetails.modelMeasurements}</Text>
+            </>
+          )}
+          
+          {product.descriptionDetails.productMeasurements && (
+            <>
+              <Text style={styles.detailLabel}>Product Measurements:</Text>
+              <Text style={styles.detailValue}>{product.descriptionDetails.productMeasurements}</Text>
+            </>
+          )}
+          
+          {product.descriptionDetails.sampleSize && (
+            <>
+              <Text style={styles.detailLabel}>Sample Size:</Text>
+              <Text style={styles.detailValue}>{product.descriptionDetails.sampleSize}</Text>
             </>
           )}
         </View>
@@ -91,12 +130,13 @@ export default function ProductDetailScreen() {
             <Text style={styles.sectionTitle}>More Images</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {product.images.map((image, index) => (
-                <Image
-                  key={index}
-                  source={{ uri: image }}
-                  style={styles.thumbnail}
-                  resizeMode="cover"
-                />
+                <View key={index} style={styles.thumbnailContainer}>
+                  <Image
+                    source={{ uri: image }}
+                    style={styles.thumbnail}
+                    resizeMode="cover"
+                  />
+                </View>
               ))}
             </ScrollView>
           </View>
@@ -117,6 +157,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
   },
+  imageContainer: {
+    width: width,
+    height: width,
+    position: 'relative',
+  },
+  imageLoadingContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+  },
   mainImage: {
     width: width,
     height: width,
@@ -124,7 +175,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 16,
   },
-  brand: {
+  vendorName: {
     fontSize: 16,
     color: '#666',
     marginBottom: 4,
@@ -160,11 +211,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 12,
   },
+  thumbnailContainer: {
+    marginRight: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
   thumbnail: {
     width: 100,
     height: 100,
-    marginRight: 8,
-    borderRadius: 4,
   },
   errorText: {
     color: 'red',

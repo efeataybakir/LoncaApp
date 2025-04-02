@@ -1,13 +1,19 @@
 export interface Product {
   id: string;
-  name: string;
-  brand: string;
-  price: number;
-  sku: string;
-  series?: string;
+  vendorName: string;
+  seriesName: string;
+  seriesItemQuantity: number;
+  descriptionDetails: {
+    fabric: string;
+    modelMeasurements: string;
+    sampleSize: string;
+    productMeasurements: string;
+  };
   mainImage: string;
+  price: number;
+  name: string;
   images: string[];
-  details?: string;
+  productCode: string;
 }
 
 export interface ProductListResponse {
