@@ -10,31 +10,45 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { dataService } from '../../services/dataService';
 import { Product } from '../../types/product';
 import { ColorSelector } from '../../components/ColorSelector';
 import { ImagePreview } from '../../components/ImagePreview';
+import { ProductDescription } from '../../components/ProductDescription';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 const { width } = Dimensions.get('window');
 
-const headerOptions = {
-  headerBackTitle: 'Products',
-  headerTitle: '',
-  headerTitleAlign: 'center' as const,
-  headerTitleStyle: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-  },
-};
-
 export default function ProductDetail() {
+  const router = useRouter();
   const { productId } = useLocalSearchParams<{ productId: string }>();
   const [product, setProduct] = React.useState<Product | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [imageLoading, setImageLoading] = React.useState(true);
   const [showPreview, setShowPreview] = React.useState(false);
+
+  const headerOptions = {
+    headerBackTitle: Platform.OS === 'ios' ? '' : undefined,
+    headerTitle: '',
+    headerTitleAlign: 'center' as const,
+    headerTitleStyle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+    },
+    headerLeft: Platform.OS === 'android' ? () => (
+      <TouchableOpacity 
+        onPress={() => router.back()}
+        style={styles.headerButton}
+      >
+        <View style={styles.headerLeft}>
+          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Text style={styles.headerLeftText}>Lonca</Text>
+        </View>
+      </TouchableOpacity>
+    ) : undefined,
+  };
 
   const fetchProductDetails = async () => {
     try {
@@ -55,35 +69,6 @@ export default function ProductDetail() {
   React.useEffect(() => {
     fetchProductDetails();
   }, [productId]);
-
-  const renderDescription = () => {
-    if (!product?.descriptionDetails) return null;
-    const { fabric, modelMeasurements, productMeasurements, sampleSize } = product.descriptionDetails;
-
-    return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Description</Text>
-        <View style={styles.descriptionContainer}>
-          {fabric && (
-            <Text style={styles.description}>Fabric: {fabric}</Text>
-          )}
-          {modelMeasurements && (
-            <Text style={styles.description}>
-              Model Measurements: {modelMeasurements}
-            </Text>
-          )}
-          {productMeasurements && (
-            <Text style={styles.description}>
-              Product Measurements: {productMeasurements}
-            </Text>
-          )}
-          {sampleSize && (
-            <Text style={styles.description}>Sample Size: {sampleSize}</Text>
-          )}
-        </View>
-      </View>
-    );
-  };
 
   if (loading) {
     return (
@@ -108,13 +93,14 @@ export default function ProductDetail() {
   }
 
   const colors = dataService.getProductColors(product.productCode);
+  const packPrice = product.price * product.seriesItemQuantity;
 
   return (
     <>
-      <Stack.Screen
+      <Stack.Screen 
         options={{
           ...headerOptions,
-          headerTitle: product.productCode,
+          headerTitle: product?.productCode || '',
         }}
       />
       <ScrollView style={styles.container}>
@@ -149,16 +135,30 @@ export default function ProductDetail() {
           <Text style={styles.productName}>
             {product.name.split('-')[1]?.trim() || product.name}
           </Text>
-          <Text style={styles.price}>${product.price.toFixed(2)}</Text>
+          <View style={styles.priceContainer}>
+            <Text style={styles.price}>${product.price.toFixed(2)}</Text>
+            {product.seriesItemQuantity > 1 && (
+              <Text style={styles.packPrice}>
+                Pack: ${packPrice.toFixed(2)} ({product.seriesItemQuantity} items)
+              </Text>
+            )}
+          </View>
 
-          {renderDescription()}
+          <ProductDescription descriptionDetails={product.descriptionDetails} />
 
           {product.seriesName && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Series</Text>
-              <Text style={styles.seriesInfo}>
-                {product.seriesName} ({product.seriesItemQuantity} items)
-              </Text>
+              <View style={styles.seriesContainer}>
+                <View style={styles.seriesCard}>
+                  <Text style={styles.seriesName}>{product.seriesName}</Text>
+                  <View style={styles.seriesQuantityBadge}>
+                    <Text style={styles.seriesQuantityText}>
+                      {product.seriesItemQuantity} items
+                    </Text>
+                  </View>
+                </View>
+              </View>
             </View>
           )}
         </View>
@@ -223,11 +223,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 8,
   },
+  priceContainer: {
+    marginBottom: 16,
+  },
   price: {
     fontSize: 20,
     fontWeight: '500',
     color: '#000',
-    marginBottom: 16,
+  },
+  packPrice: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 4,
   },
   section: {
     marginTop: 24,
@@ -237,19 +244,57 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 8,
   },
-  descriptionContainer: {
-    backgroundColor: '#f8f8f8',
+  seriesContainer: {
+    marginTop: 8,
+  },
+  seriesCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#fff',
+    borderRadius: 12,
     padding: 16,
-    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#eee',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 3.84,
+    elevation: 2,
   },
-  description: {
+  seriesName: {
     fontSize: 16,
-    lineHeight: 24,
-    color: '#666',
-    marginBottom: 8,
+    fontWeight: '500',
+    color: '#333',
   },
-  seriesInfo: {
-    fontSize: 16,
+  seriesQuantityBadge: {
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  seriesQuantityText: {
+    fontSize: 14,
     color: '#666',
+    fontWeight: '500',
+  },
+  headerButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerLeftText: {
+    fontSize: 16,
+    color: '#000',
+    fontWeight: '400',
   },
 }); 

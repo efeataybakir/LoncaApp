@@ -33,6 +33,7 @@ export function ProductCard({ product }: ProductCardProps) {
   };
 
   const displayName = product.name.split('-')[1]?.trim() || product.name;
+  const packPrice = product.price * product.seriesItemQuantity;
 
   return (
     <TouchableOpacity
@@ -60,7 +61,14 @@ export function ProductCard({ product }: ProductCardProps) {
         <Text style={styles.name} numberOfLines={2}>
           {displayName}
         </Text>
-        <Text style={styles.price}>${product.price.toFixed(2)}</Text>
+        <View style={styles.priceContainer}>
+          <Text style={styles.price}>${product.price.toFixed(2)}</Text>
+          {product.seriesItemQuantity > 1 && (
+            <Text style={styles.packPrice}>
+              Pack: ${packPrice.toFixed(2)} ({product.seriesItemQuantity} items)
+            </Text>
+          )}
+        </View>
       </View>
 
       <ImagePreview
@@ -74,7 +82,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
 const styles = StyleSheet.create({
   container: {
-    width: '48%',
+    flex: 1,
     backgroundColor: '#fff',
     borderRadius: 8,
     marginBottom: 16,
@@ -83,6 +91,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    marginHorizontal: 4,
   },
   imageContainer: {
     width: '100%',
@@ -108,12 +117,19 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 14,
     fontWeight: '500',
-    marginBottom: 4,
+    marginBottom: 8,
     color: '#333',
+  },
+  priceContainer: {
+    gap: 4,
   },
   price: {
     fontSize: 16,
     fontWeight: '600',
     color: '#000',
+  },
+  packPrice: {
+    fontSize: 12,
+    color: '#666',
   },
 }); 
