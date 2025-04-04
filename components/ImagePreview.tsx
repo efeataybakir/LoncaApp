@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Modal,
@@ -7,47 +7,48 @@ import {
   TouchableOpacity,
   Dimensions,
   FlatList,
-  SafeAreaView,
   Platform,
   StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+
+const { width, height } = Dimensions.get('window');
 
 interface ImagePreviewProps {
   visible: boolean;
   images: string[];
+  initialIndex?: number;
   onClose: () => void;
 }
 
-const { width, height } = Dimensions.get('window');
-
-export function ImagePreview({ visible, images, onClose }: ImagePreviewProps) {
-  const [currentIndex, setCurrentIndex] = React.useState(0);
+export function ImagePreview({ visible, images, initialIndex = 0, onClose }: ImagePreviewProps) {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
 
   const handleClose = () => {
     setCurrentIndex(0);
     onClose();
   };
 
-  const renderItem = ({ item }: { item: string }) => (
-    <Image
-      source={{ uri: item }}
-      style={styles.image}
-      resizeMode="contain"
-    />
-  );
+  const handleNext = () => {
+    if (currentIndex < images.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
+  };
 
-  const renderPagination = () => (
-    <View style={styles.pagination}>
-      {images.map((_, index) => (
-        <View
-          key={index}
-          style={[
-            styles.paginationDot,
-            index === currentIndex && styles.paginationDotActive,
-          ]}
-        />
-      ))}
+  const handlePrevious = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
+  };
+
+  const renderItem = ({ item }: { item: string }) => (
+    <View style={styles.imageWrapper}>
+      <Image
+        source={{ uri: item }}
+        style={styles.image}
+        resizeMode="contain"
+      />
     </View>
   );
 
@@ -56,10 +57,19 @@ export function ImagePreview({ visible, images, onClose }: ImagePreviewProps) {
       visible={visible}
       transparent
       animationType="fade"
-      onRequestClose={handleClose}
+      statusBarTranslucent
     >
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" />
+      <View style={styles.container}>
+        <BlurView intensity={80} style={StyleSheet.absoluteFill} />
+        
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={handleClose}
+        >
+          <Ionicons name="close" size={28} color="#fff" />
+        </TouchableOpacity>
+
         <View style={styles.imageContainer}>
           <FlatList
             data={images}
@@ -74,21 +84,45 @@ export function ImagePreview({ visible, images, onClose }: ImagePreviewProps) {
               );
               setCurrentIndex(newIndex);
             }}
+            initialScrollIndex={initialIndex}
+            getItemLayout={(_, index) => ({
+              length: width,
+              offset: width * index,
+              index,
+            })}
           />
-          
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={handleClose}
-            hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-          >
-            <View style={styles.closeButtonBackground}>
-              <Ionicons name="close" size={24} color="#000" />
-            </View>
-          </TouchableOpacity>
         </View>
 
-        {renderPagination()}
-      </SafeAreaView>
+        <View style={styles.navigationContainer}>
+          <TouchableOpacity
+            style={[styles.navButton, !currentIndex && styles.disabledButton]}
+            onPress={handlePrevious}
+            disabled={!currentIndex}
+          >
+            <Ionicons name="chevron-back" size={32} color="#fff" />
+          </TouchableOpacity>
+
+          <View style={styles.pagination}>
+            {images.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.paginationDot,
+                  currentIndex === index && styles.activeDot,
+                ]}
+              />
+            ))}
+          </View>
+
+          <TouchableOpacity
+            style={[styles.navButton, currentIndex === images.length - 1 && styles.disabledButton]}
+            onPress={handleNext}
+            disabled={currentIndex === images.length - 1}
+          >
+            <Ionicons name="chevron-forward" size={32} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </View>
     </Modal>
   );
 }
@@ -96,56 +130,70 @@ export function ImagePreview({ visible, images, onClose }: ImagePreviewProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    backgroundColor: 'rgba(0,0,0,0.9)',
     justifyContent: 'center',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
-  },
-  imageContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    position: 'relative',
   },
   closeButton: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 16 : 16,
-    right: 16,
-    width: 44,
-    height: 44,
+    top: Platform.OS === 'ios' ? 44 : 20,
+    right: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
   },
-  closeButtonBackground: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  imageContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
+  },
+  imageWrapper: {
+    width: width,
+    height: height,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   image: {
-    width,
+    width: width,
     height: height * 0.8,
+  },
+  navigationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  navButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
   pagination: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 16,
+    gap: 8,
   },
   paginationDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    marginHorizontal: 4,
+    backgroundColor: 'rgba(255,255,255,0.5)',
   },
-  paginationDotActive: {
+  activeDot: {
     backgroundColor: '#fff',
+    width: 24,
   },
 }); 

@@ -15,6 +15,7 @@ export interface Product {
   color: string;
   productCode: string;
   images: string[];
+  description?: string;
 }
 
 export interface ProductListResponse {
